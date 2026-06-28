@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>青岛威海亲子游 · 松弛遛娃手册</title>
+  <!-- Leaflet CSS + JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Noto Sans', 'Helvetica Neue', sans-serif;
+      background: #fdf8f2;
+      color: #3e3a35;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      touch-action: pan-x pan-y; /* 允许地图手势 */
+    }
+
+    .header {
+      background: linear-gradient(135deg, #7ec8e3 0%, #b4e0f2 100%);
+      color: #ffffff;
+      padding: 1rem 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .header h1 span {
+      font-size: 1.8rem;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin-top: 0.2rem;
+    }
+
+    .container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      background: #fffcf8;
+    }
+
+    /* 左侧行程列表 */
+    .sidebar {
+      width: 280px;
+      background: #ffffff;
+      border-right: 1px solid #e6ddd2;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+      flex-shrink: 0;
+      z-index: 5;
+      padding: 0.5rem 0;
+    }
+
+    .day-card {
+      padding: 0.9rem 1.2rem;
+      margin: 0.3rem 0.8rem;
+      border-radius: 16px;
+      background: #fffdf9;
+      border: 1px solid #f0e8db;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .day-card:hover {
+      background: #fef7ed;
+      border-color: #f6c28b;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+    }
+    .day-card.active {
+      background: #ffe8d6;
+      border-color: #e09f5c;
+      box-shadow: 0 8px 18px rgba(230, 140, 50, 0.15);
+      font-weight: 500;
+    }
+    .day-num {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #5f4b3c;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .day-date {
+      font-size: 0.8rem;
+      color: #8b7a6b;
+    }
+    .day-location {
+      font-size: 0.85rem;
+      color: #4b7b8c;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    /* 右侧主要内容 */
+    .main-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .map-container {
+      flex: 3;
+      min-height: 280px;
+      background: #dcebf0;
+      position: relative;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    .info-panel {
+      flex: 2;
+      background: #ffffff;
+      border-top: 1px solid #e6ddd2;
+      padding: 1rem 1.5rem;
+      overflow-y: auto;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .day-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4a3724;
+      border-left: 6px solid #f2a65a;
+      padding-left: 1rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .time-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed #e7dbcd;
+      padding-bottom: 0.4rem;
+    }
+    .time {
+      font-weight: 700;
+      min-width: 75px;
+      color: #4b6e7c;
+      background: #eef5f8;
+      padding: 0.15rem 0.5rem;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .desc {
+      flex: 1;
+      color: #4d463b;
+    }
+    .desc strong {
+      color: #c96a2c;
+      font-weight: 600;
+    }
+    .badge {
+      background: #fce4d4;
+      color: #a34f1f;
+      padding: 0.15rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+      margin-left: 0.3rem;
+    }
+    .reminder {
+      background: #fff3e0;
+      border-left: 5px solid #ffb347;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #5e3e1c;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.5rem;
+        flex: 0 0 auto;
+        border-right: none;
+        border-bottom: 1px solid #e6ddd2;
+      }
+      .day-card {
+        flex: 0 0 auto;
+        min-width: 110px;
+        margin: 0 0.3rem;
+        padding: 0.6rem;
+        font-size: 0.8rem;
+        white-space: nowrap;
+      }
+      .map-container {
+        flex: 2;
+        min-height: 250px;
+      }
+      .info-panel {
+        flex: 1.5;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>
+      <span>🌊</span> 青岛·威海亲子漫游 <span>👶</span>
+    </h1>
+    <div class="subtitle">4大2小1婴儿 · 午休避暑 · 推车友好 · 不累娃</div>
+  </div>
+
+  <div class="container">
+    <!-- 左侧日期列表 -->
+    <div class="sidebar" id="sidebar"></div>
+
+    <!-- 右侧地图与详情 -->
+    <div class="main-panel">
+      <div class="map-container">
+        <div id="map"></div>
+      </div>
+      <div class="info-panel" id="infoPanel">
+        <div class="day-title">选择日期查看行程</div>
+        <div class="timeline">点击左侧日期卡片，右侧会显示当天的详细安排和地图路线。</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- 行程数据 ----------
+    const itinerary = [
+      {
+        id: 1,
+        title: 'Day1 抵达青岛',
+        date: '7/16 周三',
+        location: '栈桥 · 中山路老城',
+        coords: [
+          { lat: 36.0625, lng: 120.3150, name: '栈桥', icon: 'beach' },
+          { lat: 36.0659, lng: 120.3158, name: '圣弥厄尔教堂', icon: 'church' },
+          { lat: 36.0650, lng: 120.3130, name: '中山路公寓', icon: 'home' }
+        ],
+        route: [[36.0650,120.3130], [36.0625,120.3150], [36.0659,120.3158]],
+        timeline: [
+          { time: '12:00', desc: '抵达青岛，酒店放行李' },
+          { time: '12:30', desc: '附近清淡午餐（鲅鱼水饺、蒸蛋、宝宝粥）' },
+          { time: '13:30-15:30', desc: '🛌 强制午休避暑，小宝宝补觉' },
+          { time: '16:10', desc: '栈桥浅滩踩水捡贝壳，不上回澜阁' },
+          { time: '17:20', desc: '中山路、圣弥厄尔教堂外观拍照' },
+          { time: '19:00', desc: '中山路鱼水饺晚餐（少盐无辣）' },
+          { time: '20:30', desc: '返回住处休息' }
+        ],
+        reminder: '全程步行，推车友好，注意补水防晒。'
+      },
+      {
+        id: 2,
+        title: 'Day2 室内避暑',
+        date: '7/17 周四',
+        location: '海昌极地海洋世界 · 台东夜市',
+        coords: [
+          { lat: 36.0686, lng: 120.4370, name: '极地海洋世界', icon: 'fish' },
+          { lat: 36.0730, lng: 120.4400, name: '金鼎广场', icon: 'food' },
+          { lat: 36.0805, lng: 120.3550, name: '台东夜市', icon: 'market' }
+        ],
+        route: [[36.0650,120.3130], [36.0686,120.4370], [36.0730,120.4400], [36.0805,120.3550]],
+        timeline: [
+          { time: '09:00', desc: '打车前往极地海洋世界（提前预约）' },
+          { time: '09:30-12:30', desc: '🐬 看海豚白鲸表演、海底隧道，母婴室齐全' },
+          { time: '12:30', desc: '金鼎广场亲子简餐' },
+          { time: '13:30-15:30', desc: '🛌 回酒店午睡休整' },
+          { time: '18:40', desc: '打车去台东夜市，19点前到' },
+          { time: '19:00-20:30', desc: '酸奶、糯米饭、原味肉肠，避开重油烧烤' },
+          { time: '21:00', desc: '返程休息' }
+        ],
+        reminder: '室内冷气足，带薄外套。'
+      },
+      {
+        id: 3,
+        title: 'Day3 野生动物世界',
+        date: '7/18 周五',
+        location: '青岛森林野生动物世界（黄岛）',
+        coords: [
+          { lat: 35.9650, lng: 120.0780, name: '野生动物世界', icon: 'zoo' }
+        ],
+        route: [[36.0650,120.3130], [35.9650,120.0780]],
+        timeline: [
+          { time: '07:40', desc: '早起简餐，备胡萝卜条、防晒、驱蚊液' },
+          { time: '08:20', desc: '打车出发，单程约1小时，车上补觉' },
+          { time: '09:30-13:00', desc: '🦒 必买观光车票！萌宠投喂、长颈鹿、猛兽区' },
+          { time: '13:10', desc: '园区简餐或自带野餐' },
+          { time: '14:00', desc: '返程，车上二次午睡' },
+          { time: '下午-晚', desc: '🏨 全程酒店休息，无户外安排，社区家常菜晚餐' }
+        ],
+        reminder: '园区多坡，推车务必搭配观光车。'
+      },
+      {
+        id: 4,
+        title: 'Day4 八大关→威海',
+        date: '7/19 周六',
+        location: '八大关 · 转场威海',
+        coords: [
+          { lat: 36.0490, lng: 120.3540, name: '八大关', icon: 'park' },
+          { lat: 36.0640, lng: 120.3800, name: '青岛北站', icon: 'train' },
+          { lat: 37.5130, lng: 122.1200, name: '威海国际海水浴场', icon: 'beach' }
+        ],
+        route: [[36.0650,120.3130], [36.0490,120.3540], [36.0640,120.3800], [37.5130,122.1200]],
+        timeline: [
+          { time: '08:00', desc: '退房，行李寄存前台' },
+          { time: '08:40', desc: '八大关林荫平路+二浴浅滩踩水' },
+          { time: '11:10', desc: '取行李，附近简餐' },
+          { time: '13:30', desc: '🚄 青岛北站高铁前往威海（1.5h）' },
+          { time: '15:00', desc: '入住威海海景民宿，宝宝补觉' },
+          { time: '16:30', desc: '国际海水浴场挖沙踏浪' },
+          { time: '19:00', desc: '附近韩餐（海鲜豆腐汤、蒸蛋）' },
+          { time: '21:00', desc: '休息' }
+        ],
+        reminder: '⚠️ 第一晚不去韩乐坊（太远），选民宿周边韩餐。'
+      },
+      {
+        id: 5,
+        title: 'Day5 环海轻游',
+        date: '7/20 周日',
+        location: '海源公园 · 猫头山 · 火炬八街',
+        coords: [
+          { lat: 37.5260, lng: 122.1430, name: '海源公园', icon: 'park' },
+          { lat: 37.5380, lng: 122.1560, name: '猫头山3号观景台', icon: 'view' },
+          { lat: 37.5180, lng: 122.1050, name: '火炬八街', icon: 'photo' }
+        ],
+        route: [[37.5130,122.1200], [37.5260,122.1430], [37.5380,122.1560], [37.5180,122.1050]],
+        timeline: [
+          { time: '09:00', desc: '海源公园木栈道+大草坪，全程平地推车' },
+          { time: '10:30', desc: '猫头山3号观景台，最短步道看海' },
+          { time: '11:30', desc: '🛌 回民宿午休' },
+          { time: '16:30', desc: '火炬八街浅拍，回浴场二次玩沙' },
+          { time: '晚上', desc: '连锁海鲜店，可做无辣宝宝餐' }
+        ]
+      },
+      {
+        id: 6,
+        title: 'Day6 室内+赶海',
+        date: '7/21 周一',
+        location: '海洋科技馆 · 小石岛赶海',
+        coords: [
+          { lat: 37.5070, lng: 122.0800, name: '威海海洋科技馆', icon: 'museum' },
+          { lat: 37.5280, lng: 122.0480, name: '小石岛滩涂', icon: 'crab' }
+        ],
+        route: [[37.5130,122.1200], [37.5070,122.0800], [37.5280,122.0480]],
+        timeline: [
+          { time: '09:00', desc: '🔬 海洋科技馆室内空调，低龄互动区' },
+          { time: '12:00', desc: '威高广场亲子餐厅' },
+          { time: '13:30-15:30', desc: '🛌 午睡' },
+          { time: '16:30', desc: '🦀 小石岛免费滩涂赶海（低潮），穿防滑鞋' }
+        ],
+        reminder: '查好潮汐表，大人全程看护幼儿。'
+      },
+      {
+        id: 7,
+        title: 'Day7 城市公园',
+        date: '7/22 周二',
+        location: '威海公园 · 悦海公园 · 海上公园',
+        coords: [
+          { lat: 37.4880, lng: 122.1340, name: '威海公园大相框', icon: 'landmark' },
+          { lat: 37.4800, lng: 122.1420, name: '悦海公园灯塔', icon: 'lighthouse' },
+          { lat: 37.4700, lng: 122.1550, name: '海上公园', icon: 'park' }
+        ],
+        route: [[37.5130,122.1200], [37.4880,122.1340], [37.4800,122.1420], [37.4700,122.1550]],
+        timeline: [
+          { time: '09:00', desc: '威海公园网红大相框打卡' },
+          { time: '10:30', desc: '悦海公园灯塔，带面包碎喂鱼/海鸥' },
+          { time: '11:30', desc: '🛌 回民宿午休' },
+          { time: '16:30', desc: '海上公园放风筝、看日落' },
+          { time: '19:00', desc: '欧乐坊夜市，韩国零食伴手礼' }
+        ]
+      },
+      {
+        id: 8,
+        title: 'Day8 自由沙滩日',
+        date: '7/23 周三',
+        location: '国际海水浴场全天',
+        coords: [
+          { lat: 37.5130, lng: 122.1200, name: '海水浴场', icon: 'beach' }
+        ],
+        route: [],
+        timeline: [
+          { time: '上午', desc: '⛱️ 堆沙堡、踏浪玩水' },
+          { time: '中午', desc: '回房午睡' },
+          { time: '下午', desc: '周边超市采购伴手礼、宝宝零食' },
+          { time: '晚上', desc: '早休息，打包行李' }
+        ],
+        reminder: '最后一天沙滩时光，享受慢节奏。'
+      },
+      {
+        id: 9,
+        title: 'Day9 回程',
+        date: '7/24 周四',
+        location: '威海→烟台蓬莱机场→福州',
+        coords: [
+          { lat: 37.5000, lng: 122.1100, name: '威海卫大厦', icon: 'bus' },
+          { lat: 37.6600, lng: 120.9800, name: '烟台蓬莱机场', icon: 'airport' }
+        ],
+        route: [[37.5130,122.1200], [37.5000,122.1100], [37.6600,120.9800]],
+        timeline: [
+          { time: '08:00', desc: '民宿退房，行李随身' },
+          { time: '08:30', desc: '🚌 威海卫大厦乘直达机场大巴（2h）' },
+          { time: '10:30', desc: '抵达蓬莱机场，值机' },
+          { time: '下午', desc: '✈️ 飞回福州，旅途结束' }
+        ]
+      }
+    ];
+
+    // ---------- 地图初始化 ----------
+    const map = L.map('map', {
+      center: [36.8, 121.5],
+      zoom: 8,
+      zoomControl: true,
+      attributionControl: false
+    });
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    // 自定义图标
+    const icons = {
+      home: L.divIcon({ className: 'emoji-icon', html: '🏠', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      beach: L.divIcon({ className: 'emoji-icon', html: '⛱️', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      church: L.divIcon({ className: 'emoji-icon', html: '⛪', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      fish: L.divIcon({ className: 'emoji-icon', html: '🐬', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      food: L.divIcon({ className: 'emoji-icon', html: '🍽️', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      market: L.divIcon({ className: 'emoji-icon', html: '🏮', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      zoo: L.divIcon({ className: 'emoji-icon', html: '🦒', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      park: L.divIcon({ className: 'emoji-icon', html: '🌳', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      train: L.divIcon({ className: 'emoji-icon', html: '🚄', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      view: L.divIcon({ className: 'emoji-icon', html: '🏞️', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      photo: L.divIcon({ className: 'emoji-icon', html: '📸', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      museum: L.divIcon({ className: 'emoji-icon', html: '🔬', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      crab: L.divIcon({ className: 'emoji-icon', html: '🦀', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      landmark: L.divIcon({ className: 'emoji-icon', html: '🖼️', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      lighthouse: L.divIcon({ className: 'emoji-icon', html: '🗼', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      bus: L.divIcon({ className: 'emoji-icon', html: '🚌', iconSize: [28, 28], popupAnchor: [0, -14] }),
+      airport: L.divIcon({ className: 'emoji-icon', html: '✈️', iconSize: [28, 28], popupAnchor: [0, -14] })
+    };
+
+    let currentMarkers = [];
+    let currentPolyline = null;
+
+    function clearMapLayer() {
+      currentMarkers.forEach(m => map.removeLayer(m));
+      currentMarkers = [];
+      if (currentPolyline) {
+        map.removeLayer(currentPolyline);
+        currentPolyline = null;
+      }
+    }
+
+    function renderDay(day) {
+      clearMapLayer();
+      // 添加标记
+      day.coords.forEach(c => {
+        const marker = L.marker([c.lat, c.lng], { icon: icons[c.icon] || icons.beach })
+          .addTo(map)
+          .bindPopup(`<b>${c.name}</b>`);
+        currentMarkers.push(marker);
+      });
+
+      // 绘制路线
+      if (day.route && day.route.length >= 2) {
+        currentPolyline = L.polyline(day.route, {
+          color: '#f2a65a',
+          weight: 4,
+          opacity: 0.8,
+          dashArray: '8, 8'
+        }).addTo(map);
+      }
+
+      // 调整地图视野
+      if (day.coords.length > 0) {
+        const group = new L.featureGroup(currentMarkers);
+        map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 13 });
+      }
+
+      // 更新信息面板
+      const panel = document.getElementById('infoPanel');
+      let timelineHtml = '';
+      day.timeline.forEach(t => {
+        timelineHtml += `
+          <div class="time-item">
+            <span class="time">${t.time}</span>
+            <span class="desc">${t.desc}</span>
+          </div>
+        `;
+      });
+
+      panel.innerHTML = `
+        <div class="day-title">${day.title}</div>
+        <div style="font-weight:600; color:#7a6a5c;">${day.date} · ${day.location}</div>
+        <div class="timeline">${timelineHtml}</div>
+        ${day.reminder ? `<div class="reminder">💡 ${day.reminder}</div>` : ''}
+      `;
+    }
+
+    // 生成侧边栏
+    const sidebar = document.getElementById('sidebar');
+    itinerary.forEach((day, index) => {
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      card.innerHTML = `
+        <div class="day-num"><span>📅</span> Day${index+1}</div>
+        <div class="day-date">${day.date}</div>
+        <div class="day-location">📍 ${day.location.split('·')[0]}</div>
+      `;
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.day-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        renderDay(day);
+        // 移动端自动滑动到信息面板
+        if (window.innerWidth <= 700) {
+          document.getElementById('infoPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+      sidebar.appendChild(card);
+    });
+
+    // 默认激活第一天
+    setTimeout(() => {
+      const firstCard = document.querySelector('.day-card');
+      if (firstCard) {
+        firstCard.classList.add('active');
+        renderDay(itinerary[0]);
+      }
+    }, 200);
+
+    // 修复地图大小问题
+    window.addEventListener('resize', () => {
+      map.invalidateSize();
+    });
+  </script>
+</body>
+</html>
