@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>青岛威海亲子游手册</title>
-  <!-- Leaflet CSS + JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -16,6 +17,8 @@
       --card: #ffffff;
       --text: #3e3a35;
       --sub: #8b7a6b;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     * {
@@ -24,36 +27,44 @@
       box-sizing: border-box;
     }
 
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', sans-serif;
       background: var(--sand);
       color: var(--text);
-      height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
-    /* === 頂部導航 === */
+    /* === 頂部標題 === */
     .top-bar {
       background: linear-gradient(135deg, #7ec8e3 0%, #a8d8ea 100%);
       color: #fff;
       padding: 12px 16px;
-      padding-top: max(12px, env(safe-area-inset-top));
+      padding-top: calc(12px + var(--safe-top));
       text-align: center;
       flex-shrink: 0;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       z-index: 20;
     }
     .top-bar h1 {
-      font-size: 1.3rem;
+      font-size: 1.2rem;
       font-weight: 700;
       letter-spacing: 1px;
+      margin: 0;
     }
     .top-bar .meta {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       opacity: 0.9;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* === 日期橫向滑動 === */
@@ -61,12 +72,13 @@
       display: flex;
       overflow-x: auto;
       gap: 6px;
-      padding: 10px 12px;
+      padding: 8px 12px;
       background: #fff;
       border-bottom: 1px solid #f0e8db;
       flex-shrink: 0;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      z-index: 10;
     }
     .date-strip::-webkit-scrollbar {
       display: none;
@@ -74,9 +86,9 @@
 
     .date-pill {
       flex: 0 0 auto;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
+      padding: 7px 12px;
+      border-radius: 18px;
+      font-size: 0.75rem;
       font-weight: 600;
       white-space: nowrap;
       background: #fdf8f2;
@@ -85,10 +97,12 @@
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
-      min-width: 70px;
+      min-width: 62px;
+      -webkit-tap-highlight-color: transparent;
     }
     .date-pill:active {
       transform: scale(0.95);
+      background: #ffe8d6;
     }
     .date-pill.active {
       background: #ffe8d6;
@@ -97,58 +111,51 @@
       box-shadow: 0 2px 10px rgba(242,166,90,0.2);
     }
 
-    /* === 主要內容區 === */
+    /* === 主要內容滾動區 === */
     .main-scroll {
       flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 12px;
+      padding: 8px 10px;
+      padding-bottom: calc(8px + var(--safe-bottom));
     }
 
     /* === 地圖卡片 === */
     .map-card {
       background: #fff;
-      border-radius: 16px;
+      border-radius: 14px;
       overflow: hidden;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-      position: relative;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
     }
     .map-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 14px;
+      padding: 8px 12px;
       background: #fefcf8;
       border-bottom: 1px solid #f0e8db;
     }
     .map-header span {
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: var(--deep);
     }
     .map-toggle {
       background: var(--ocean);
       color: #fff;
       border: none;
-      padding: 6px 14px;
-      border-radius: 14px;
-      font-size: 0.75rem;
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
     .map-body {
-      height: 180px;
+      height: 150px;
       width: 100%;
       transition: height 0.3s;
-    }
-    .map-body.expanded {
-      height: 55vh;
-    }
-    .map-body iframe {
-      border: 0;
-      width: 100%;
-      height: 100%;
     }
     #map {
       height: 100%;
@@ -157,49 +164,49 @@
 
     /* === 行程時間軸 === */
     .day-header {
-      margin-bottom: 10px;
+      margin-bottom: 6px;
     }
     .day-header h2 {
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       color: var(--deep);
       border-left: 5px solid var(--coral);
-      padding-left: 12px;
+      padding-left: 10px;
+      margin: 0 0 2px 0;
     }
     .day-header .sub {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--sub);
-      margin-top: 2px;
-      padding-left: 17px;
+      padding-left: 15px;
     }
 
     .timeline {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
     }
     .time-item {
       display: flex;
       align-items: flex-start;
-      gap: 8px;
+      gap: 6px;
       background: #fff;
-      padding: 12px 14px;
-      border-radius: 14px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      padding: 10px 12px;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
     .time-badge {
       background: #eef5f8;
       color: #4b6e7c;
       font-weight: 700;
-      font-size: 0.7rem;
-      padding: 4px 8px;
-      border-radius: 10px;
-      min-width: 72px;
+      font-size: 0.65rem;
+      padding: 3px 7px;
+      border-radius: 8px;
+      min-width: 65px;
       text-align: center;
       flex-shrink: 0;
     }
     .time-desc {
-      font-size: 0.85rem;
-      line-height: 1.4;
+      font-size: 0.8rem;
+      line-height: 1.35;
       color: #4d463b;
     }
     .time-desc .highlight {
@@ -208,7 +215,7 @@
     }
     .rest-item {
       background: #fff8f0;
-      border-left: 4px solid #f2a65a;
+      border-left: 3px solid #f2a65a;
     }
     .rest-item .time-badge {
       background: #ffe8d6;
@@ -218,44 +225,42 @@
     .reminder-box {
       background: #fffbf5;
       border: 1px solid #fce4d4;
-      border-radius: 12px;
-      padding: 12px 14px;
-      margin-top: 10px;
-      font-size: 0.8rem;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      font-size: 0.75rem;
       color: #8b5e3c;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
     }
 
     /* === 底部備忘錄 === */
     .checklist-card {
       background: #fff;
-      border-radius: 16px;
-      padding: 14px;
-      margin-top: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+      border-radius: 14px;
+      padding: 12px;
+      margin-top: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
     }
     .checklist-card h3 {
-      font-size: 0.95rem;
-      margin-bottom: 8px;
+      font-size: 0.85rem;
+      margin: 0 0 6px 0;
       color: var(--deep);
     }
     .checklist-row {
       display: flex;
       flex-wrap: wrap;
       gap: 4px;
+      margin-bottom: 2px;
     }
     .checklist-tag {
       background: #f0f7fa;
       color: #3a6b7c;
-      padding: 4px 10px;
-      border-radius: 12px;
+      padding: 3px 8px;
+      border-radius: 10px;
       font-size: 0.7rem;
       font-weight: 500;
     }
 
-    /* === 全螢幕地圖疊層 === */
+    /* === 全螢幕地圖 === */
     .map-overlay {
       display: none;
       position: fixed;
@@ -274,29 +279,29 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
-      padding-top: max(12px, env(safe-area-inset-top));
+      padding: 10px 14px;
+      padding-top: calc(10px + var(--safe-top));
       background: var(--ocean);
       color: #fff;
       flex-shrink: 0;
     }
     .map-overlay-header button {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.25);
       color: #fff;
       border: none;
-      padding: 8px 16px;
-      border-radius: 16px;
+      padding: 6px 14px;
+      border-radius: 14px;
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      -webkit-tap-highlight-color: transparent;
     }
     #fullMap {
       flex: 1;
       width: 100%;
     }
 
-    /* 隱藏 Leaflet 預設樣式干擾 */
     .leaflet-control-attribution {
-      font-size: 8px !important;
+      font-size: 7px !important;
     }
   </style>
 </head>
@@ -308,7 +313,7 @@
     <div class="meta">4大2小1婴儿 · 午休避暑 · 推车友好</div>
   </div>
 
-  <!-- 日期滑動條 -->
+  <!-- 日期滑動 -->
   <div class="date-strip" id="dateStrip"></div>
 
   <!-- 主內容 -->
@@ -316,10 +321,10 @@
     <!-- 地圖卡片 -->
     <div class="map-card">
       <div class="map-header">
-        <span>🗺️ 今日路線地圖</span>
+        <span>🗺️ 今日路線</span>
         <button class="map-toggle" id="expandMapBtn">🔍 放大</button>
       </div>
-      <div class="map-body" id="mapContainer">
+      <div class="map-body">
         <div id="map"></div>
       </div>
     </div>
@@ -328,11 +333,11 @@
     <div id="dayInfo">
       <div class="day-header">
         <h2>選擇日期</h2>
-        <div class="sub">點擊上方日期查看詳細行程</div>
+        <div class="sub">點擊上方日期查看行程</div>
       </div>
     </div>
 
-    <!-- 萬用備忘錄 -->
+    <!-- 備忘錄 -->
     <div class="checklist-card">
       <h3>✅ 預約清單（提前3天）</h3>
       <div class="checklist-row">
@@ -340,7 +345,7 @@
         <span class="checklist-tag">🦒 野生動物世界</span>
         <span class="checklist-tag">🔬 威海海洋科技館</span>
       </div>
-      <h3 style="margin-top:12px;">🎒 必帶裝備</h3>
+      <h3 style="margin-top:10px;">🎒 必帶裝備</h3>
       <div class="checklist-row">
         <span class="checklist-tag">推車x2</span>
         <span class="checklist-tag">防曬霜+帽</span>
@@ -350,7 +355,7 @@
         <span class="checklist-tag">薄外套</span>
         <span class="checklist-tag">奶粉/輔食</span>
       </div>
-      <h3 style="margin-top:12px;">🍽️ 餐飲原則</h3>
+      <h3 style="margin-top:10px;">🍽️ 餐飲原則</h3>
       <div class="checklist-row">
         <span class="checklist-tag">少鹽</span>
         <span class="checklist-tag">無辣</span>
@@ -360,7 +365,7 @@
     </div>
   </div>
 
-  <!-- 全螢幕地圖疊層 -->
+  <!-- 全螢幕地圖 -->
   <div class="map-overlay" id="mapOverlay">
     <div class="map-overlay-header">
       <span>🗺️ 詳細地圖</span>
@@ -370,13 +375,9 @@
   </div>
 
   <script>
-    // ========== 行程數據 ==========
     const itinerary = [
       {
-        id: 1,
-        title: 'Day1 抵達青島',
-        date: '7/16 週三',
-        location: '棧橋 · 中山路老城',
+        id: 1, title: 'Day1 抵達青島', date: '7/16 週三', location: '棧橋 · 中山路老城',
         coords: [
           { lat: 36.0625, lng: 120.3150, name: '棧橋', emoji: '⛱️' },
           { lat: 36.0659, lng: 120.3158, name: '聖彌厄爾教堂', emoji: '⛪' },
@@ -395,10 +396,7 @@
         reminder: '全程步行，推車友好，注意補水防曬。'
       },
       {
-        id: 2,
-        title: 'Day2 室內避暑',
-        date: '7/17 週四',
-        location: '極地海洋世界 · 台東夜市',
+        id: 2, title: 'Day2 室內避暑', date: '7/17 週四', location: '極地海洋世界 · 台東夜市',
         coords: [
           { lat: 36.0686, lng: 120.4370, name: '極地海洋世界', emoji: '🐬' },
           { lat: 36.0730, lng: 120.4400, name: '金鼎廣場', emoji: '🍽️' },
@@ -417,10 +415,7 @@
         reminder: '室內冷氣足，帶薄外套。'
       },
       {
-        id: 3,
-        title: 'Day3 野生動物世界',
-        date: '7/18 週五',
-        location: '青島森林野生動物世界（黃島）',
+        id: 3, title: 'Day3 野生動物世界', date: '7/18 週五', location: '青島森林野生動物世界（黃島）',
         coords: [
           { lat: 35.9650, lng: 120.0780, name: '野生動物世界', emoji: '🦒' }
         ],
@@ -436,10 +431,7 @@
         reminder: '園區多坡，推車務必搭配觀光車。'
       },
       {
-        id: 4,
-        title: 'Day4 八大關→威海',
-        date: '7/19 週六',
-        location: '八大關 · 轉場威海',
+        id: 4, title: 'Day4 八大關→威海', date: '7/19 週六', location: '八大關 · 轉場威海',
         coords: [
           { lat: 36.0490, lng: 120.3540, name: '八大關', emoji: '🌳' },
           { lat: 36.0640, lng: 120.3800, name: '青島北站', emoji: '🚄' },
@@ -459,10 +451,7 @@
         reminder: '⚠️ 第一晚不去韓樂坊（太遠），選民宿周邊韓餐。'
       },
       {
-        id: 5,
-        title: 'Day5 環海輕遊',
-        date: '7/20 週日',
-        location: '海源公園 · 貓頭山 · 火炬八街',
+        id: 5, title: 'Day5 環海輕遊', date: '7/20 週日', location: '海源公園 · 貓頭山 · 火炬八街',
         coords: [
           { lat: 37.5260, lng: 122.1430, name: '海源公園', emoji: '🌿' },
           { lat: 37.5380, lng: 122.1560, name: '貓頭山3號', emoji: '🏞️' },
@@ -478,10 +467,7 @@
         ]
       },
       {
-        id: 6,
-        title: 'Day6 室內+趕海',
-        date: '7/21 週一',
-        location: '海洋科技館 · 小石島趕海',
+        id: 6, title: 'Day6 室內+趕海', date: '7/21 週一', location: '海洋科技館 · 小石島趕海',
         coords: [
           { lat: 37.5070, lng: 122.0800, name: '海洋科技館', emoji: '🔬' },
           { lat: 37.5280, lng: 122.0480, name: '小石島灘塗', emoji: '🦀' }
@@ -496,10 +482,7 @@
         reminder: '查好潮汐表，大人全程看護幼兒。灘塗有碎貝殼。'
       },
       {
-        id: 7,
-        title: 'Day7 城市公園',
-        date: '7/22 週二',
-        location: '威海公園 · 悅海公園 · 海上公園',
+        id: 7, title: 'Day7 城市公園', date: '7/22 週二', location: '威海公園 · 悅海公園 · 海上公園',
         coords: [
           { lat: 37.4880, lng: 122.1340, name: '大相框', emoji: '🖼️' },
           { lat: 37.4800, lng: 122.1420, name: '悅海燈塔', emoji: '🗼' },
@@ -515,10 +498,7 @@
         ]
       },
       {
-        id: 8,
-        title: 'Day8 自由沙灘日',
-        date: '7/23 週三',
-        location: '國際海水浴場全天',
+        id: 8, title: 'Day8 自由沙灘日', date: '7/23 週三', location: '國際海水浴場全天',
         coords: [
           { lat: 37.5130, lng: 122.1200, name: '海水浴場', emoji: '⛱️' }
         ],
@@ -532,10 +512,7 @@
         reminder: '最後一天沙灘時光，享受慢節奏。'
       },
       {
-        id: 9,
-        title: 'Day9 回程',
-        date: '7/24 週四',
-        location: '威海→煙台蓬萊機場→福州',
+        id: 9, title: 'Day9 回程', date: '7/24 週四', location: '威海→煙台蓬萊機場→福州',
         coords: [
           { lat: 37.5000, lng: 122.1100, name: '威海衛大廈', emoji: '🚌' },
           { lat: 37.6600, lng: 120.9800, name: '蓬萊機場', emoji: '✈️' }
@@ -550,12 +527,11 @@
       }
     ];
 
-    // ========== 初始化 ==========
     let miniMap = null;
     let fullMap = null;
     let currentDayIndex = 0;
 
-    // 建立日期膠囊
+    // 日期膠囊
     const dateStrip = document.getElementById('dateStrip');
     itinerary.forEach((day, i) => {
       const pill = document.createElement('div');
@@ -566,66 +542,50 @@
         pill.classList.add('active');
         currentDayIndex = i;
         renderDay(i);
-        // 滾動到時間軸
         document.getElementById('dayInfo').scrollIntoView({ behavior: 'smooth' });
       });
       dateStrip.appendChild(pill);
     });
 
-    // 初始化迷你地圖
     function initMiniMap() {
       if (miniMap) return;
       miniMap = L.map('map', {
         zoomControl: true,
         attributionControl: false,
-        dragging: true,
-        tap: true,
       }).setView([36.8, 121.5], 8);
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
       }).addTo(miniMap);
     }
 
-    // 更新迷你地圖
     function updateMiniMap(day) {
       if (!miniMap) initMiniMap();
-      // 清除舊圖層
       miniMap.eachLayer(layer => {
         if (layer instanceof L.Marker || layer instanceof L.Polyline) {
           miniMap.removeLayer(layer);
         }
       });
-      // 加標記
       const markers = [];
       day.coords.forEach(c => {
         const m = L.marker([c.lat, c.lng], {
-          icon: L.divIcon({ className: 'emoji-icon', html: c.emoji || '📍', iconSize: [24, 24], popupAnchor: [0, -12] })
+          icon: L.divIcon({ className: 'emoji-icon', html: c.emoji || '📍', iconSize: [22, 22], popupAnchor: [0, -11] })
         }).addTo(miniMap).bindPopup(`<b>${c.name}</b>`);
         markers.push(m);
       });
-      // 畫路線
       if (day.route && day.route.length >= 2) {
         L.polyline(day.route, {
-          color: '#f2a65a',
-          weight: 3,
-          opacity: 0.8,
-          dashArray: '6, 6'
+          color: '#f2a65a', weight: 3, opacity: 0.8, dashArray: '6, 6'
         }).addTo(miniMap);
       }
-      // 調整視野
       if (markers.length > 0) {
         const group = new L.featureGroup(markers);
-        miniMap.fitBounds(group.getBounds().pad(0.3), { maxZoom: 12 });
+        miniMap.fitBounds(group.getBounds().pad(0.35), { maxZoom: 12 });
       }
       miniMap.invalidateSize();
     }
 
-    // 全螢幕地圖
     function initFullMap(day) {
-      if (fullMap) {
-        fullMap.remove();
-        fullMap = null;
-      }
+      if (fullMap) { fullMap.remove(); fullMap = null; }
       fullMap = L.map('fullMap', {
         zoomControl: true,
         attributionControl: false,
@@ -633,20 +593,16 @@
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
       }).addTo(fullMap);
-
       const markers = [];
       day.coords.forEach(c => {
         const m = L.marker([c.lat, c.lng], {
-          icon: L.divIcon({ className: 'emoji-icon', html: c.emoji || '📍', iconSize: [30, 30], popupAnchor: [0, -15] })
+          icon: L.divIcon({ className: 'emoji-icon', html: c.emoji || '📍', iconSize: [28, 28], popupAnchor: [0, -14] })
         }).addTo(fullMap).bindPopup(`<b>${c.name}</b>`);
         markers.push(m);
       });
       if (day.route && day.route.length >= 2) {
         L.polyline(day.route, {
-          color: '#f2a65a',
-          weight: 4,
-          opacity: 0.8,
-          dashArray: '8, 8'
+          color: '#f2a65a', weight: 4, opacity: 0.8, dashArray: '8, 8'
         }).addTo(fullMap);
       }
       if (markers.length > 0) {
@@ -655,10 +611,8 @@
       }
     }
 
-    // 渲染行程詳情
     function renderDay(index) {
       const day = itinerary[index];
-      // 時間軸
       let html = `
         <div class="day-header">
           <h2>${day.title}</h2>
@@ -679,32 +633,20 @@
         html += `<div class="reminder-box">💡 ${day.reminder}</div>`;
       }
       document.getElementById('dayInfo').innerHTML = html;
-
-      // 更新迷你地圖
       updateMiniMap(day);
     }
 
-    // 地圖放大按鈕
     document.getElementById('expandMapBtn').addEventListener('click', () => {
       document.getElementById('mapOverlay').classList.add('show');
-      const day = itinerary[currentDayIndex];
-      setTimeout(() => initFullMap(day), 200);
+      setTimeout(() => initFullMap(itinerary[currentDayIndex]), 200);
     });
 
-    // 關閉全螢幕地圖
     document.getElementById('closeMapBtn').addEventListener('click', () => {
       document.getElementById('mapOverlay').classList.remove('show');
-      if (fullMap) {
-        fullMap.remove();
-        fullMap = null;
-      }
-      // 修復迷你地圖
-      setTimeout(() => {
-        if (miniMap) miniMap.invalidateSize();
-      }, 300);
+      if (fullMap) { fullMap.remove(); fullMap = null; }
+      setTimeout(() => { if (miniMap) miniMap.invalidateSize(); }, 300);
     });
 
-    // 監聽疊層關閉
     document.getElementById('mapOverlay').addEventListener('click', function(e) {
       if (e.target === this) {
         this.classList.remove('show');
@@ -713,11 +655,10 @@
       }
     });
 
-    // 初始化第一天
     setTimeout(() => {
       initMiniMap();
       renderDay(0);
-    }, 300);
+    }, 400);
   </script>
 </body>
 </html>
